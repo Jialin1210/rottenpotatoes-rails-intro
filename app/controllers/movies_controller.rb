@@ -7,25 +7,27 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @selected_columns = ""
-    @all_ratings = Movie.all_ratings()
-    if params[:ratings]
-      @ratings_to_show = params[:ratings].keys
-      session[:ratings] = params[:ratings]
-    elsif session[:ratings]
-      @ratings_to_show = session[:ratings].keys
-    else
-      @ratings_to_show = []
+    sort = params[:sort] || session[:sort]
+    # hilite
+    case sort
+    when 'title'
+      order = {:title => :asc}
+      @title_class = 'bg-warning hilite'
+    when 'release_date'
+      order = {:release_date => :asc}
+      @release_date_class = 'bg-warning hilite'
     end
-    if params[:order]
-      @movies = Movie.with_ratings(@ratings_to_show).sort_by(params[:order])
-      session[:order] = params[:order]
-    elsif session[:order]
-      @movies = Movie.with_ratings(@ratings_to_show).sort_by(session[:order]) 
-    else
-      @movies = Movie.with_ratings(@ratings_to_show)
+    
+    @all_ratings = Movie.all_ratings
+    @ratings_to_show = params[:ratings] || session[:ratings] || @all_ratings.zip(Array.new(@all_ratings.size, 1)).to_h
+    
+    if params[:sort] != session[:sort] or params[:ratings] != session[:ratings]
+      session[:sort] = sort
+      session[:ratings] = @ratings_to_show
+      redirect_to :sort => sort, :ratings => @ratings_to_show
+      return
     end
-    @selected_columns = session[:order]
+    @movies = Movie.with_ratings(@ratings_to_show, order)
   end
 
   def new
